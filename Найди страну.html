@@ -1,0 +1,679 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Найди страну</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+/* Layout: one column. Header, question card with round pips, then a map stage that carries the menu and results as overlays. */
+:root {
+  --font-display: 'Space Grotesk', system-ui, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', system-ui, 'Segoe UI', sans-serif;
+  --bg: #edf1f3;
+  --surface: #ffffff;
+  --ink: #12222b;
+  --muted: #566b76;
+  --line: #d2dde2;
+  --sea: #cbdde5;
+  --land: #f8faf8;
+  --land-hover: #dcebd8;
+  --border: #86a0ad;
+  --accent: #0f6ca8;
+  --on-accent: #ffffff;
+  --good: #168f5f;
+  --mid: #b97a0c;
+  --bad: #c63d32;
+  --pin: #d9362b;
+  --target: #2eaf7e;
+  --veil: rgba(237, 241, 243, 0.74);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b141a;
+    --surface: #121f27;
+    --ink: #e6eef1;
+    --muted: #8fa5b0;
+    --line: #213542;
+    --sea: #0a1a25;
+    --land: #1f3342;
+    --land-hover: #2c5068;
+    --border: #3f5f72;
+    --accent: #4fb0e8;
+    --on-accent: #06151f;
+    --good: #3cc68b;
+    --mid: #e0a73a;
+    --bad: #f06a5c;
+    --pin: #ff6b5c;
+    --target: #3cc68b;
+    --veil: rgba(8, 16, 22, 0.72);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b141a;
+  --surface: #121f27;
+  --ink: #e6eef1;
+  --muted: #8fa5b0;
+  --line: #213542;
+  --sea: #0a1a25;
+  --land: #1f3342;
+  --land-hover: #2c5068;
+  --border: #3f5f72;
+  --accent: #4fb0e8;
+  --on-accent: #06151f;
+  --good: #3cc68b;
+  --mid: #e0a73a;
+  --bad: #f06a5c;
+  --pin: #ff6b5c;
+  --target: #3cc68b;
+  --veil: rgba(8, 16, 22, 0.72);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-block: 20px 28px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; letter-spacing: -0.01em; }
+.brand svg { width: 26px; height: 26px; flex: none; }
+.hud { display: flex; align-items: center; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+.chip b { color: var(--ink); font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.card { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; }
+.card-main { min-width: 0; }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.card h2 { margin: 2px 0 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.7rem, 5.5vw, 2.5rem); line-height: 1.1; letter-spacing: -0.02em; text-wrap: balance; overflow-wrap: anywhere; }
+.detail { margin: 4px 0 0; color: var(--muted); min-height: 1.5em; }
+.card-side { display: flex; align-items: center; gap: 14px; flex: none; }
+.gain { font-family: var(--font-display); font-weight: 700; font-size: 2rem; font-variant-numeric: tabular-nums; }
+.gain.good { color: var(--good); } .gain.mid { color: var(--mid); } .gain.bad { color: var(--bad); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 16px; font-weight: 600; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+
+.pips { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
+.pip { height: 6px; border-radius: 3px; background: var(--line); }
+.pip.now { background: transparent; box-shadow: inset 0 0 0 2px var(--accent); }
+.pip.good { background: var(--good); } .pip.mid { background: var(--mid); } .pip.bad { background: var(--bad); }
+
+.stage { position: relative; background: var(--sea); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; aspect-ratio: 900 / 470; max-height: 72vh; width: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+.stage svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.stage.guessing svg { cursor: crosshair; }
+.c { fill: var(--land); stroke: var(--border); stroke-width: 0.7px; stroke-linejoin: round; transition: fill 0.12s; }
+.guessing .c:hover { fill: var(--land-hover); }
+.c.target { fill: var(--target); stroke: var(--ink); stroke-width: 1.2px; fill-opacity: 0.9; }
+.c.wrong { fill: var(--pin); fill-opacity: 0.4; }
+.fx-line { stroke: var(--ink); stroke-width: 1.5px; stroke-dasharray: 5 4; fill: none; }
+.fx-halo { fill: var(--pin); fill-opacity: 0.22; }
+.fx-ring { fill: none; stroke: var(--pin); stroke-width: 2px; }
+.fx-dot { fill: var(--pin); stroke: var(--surface); stroke-width: 1.5px; }
+.fx-target { fill: none; stroke: var(--target); stroke-width: 2.5px; }
+
+.ctrl { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
+.ctrl button { width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; font-size: 1.1rem; line-height: 1; padding: 0; }
+.ctrl button:hover { border-color: var(--accent); }
+.ctrl .world { font-size: 0.7rem; width: auto; padding: 0 8px; height: 30px; }
+
+.overlay { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; padding: 14px; background: var(--veil); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); overflow: auto; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; width: min(100%, 470px); max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 12px; margin: auto; }
+.panel h3 { margin: 0; font-family: var(--font-display); font-size: 1.3rem; letter-spacing: -0.01em; }
+.panel p { margin: 0; color: var(--muted); }
+.levels { display: flex; flex-direction: column; gap: 8px; }
+.level { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; text-align: left; width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.level:hover { border-color: var(--accent); }
+.level .name { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; }
+.level .desc { font-size: 0.84rem; color: var(--muted); }
+.level .best { font-size: 0.8rem; color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.level .best b { display: block; font-family: var(--font-display); font-size: 1.05rem; color: var(--ink); }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 22px; }
+.bars i { width: 6px; border-radius: 2px; background: var(--line); }
+.bars i:nth-child(1) { height: 8px; } .bars i:nth-child(2) { height: 14px; } .bars i:nth-child(3) { height: 22px; }
+.bars i.on { background: var(--accent); }
+
+.final { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.final .big { font-family: var(--font-display); font-weight: 700; font-size: 2.6rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.final .of { color: var(--muted); }
+.rank { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; color: var(--accent); }
+.rows { display: flex; flex-direction: column; gap: 5px; max-height: 240px; overflow: auto; }
+.row { display: grid; grid-template-columns: minmax(0, 9.5em) 1fr 2.4em; align-items: center; gap: 10px; font-size: 0.88rem; }
+.row span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.track i { display: block; height: 100%; border-radius: 3px; }
+.track i.good { background: var(--good); } .track i.mid { background: var(--mid); } .track i.bad { background: var(--bad); }
+.row b { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-display); font-weight: 600; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.err { padding: 24px; text-align: center; color: var(--muted); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+@media (max-width: 640px) {
+  body { padding-block: 14px 20px; }
+  .stage { aspect-ratio: auto; height: 58vh; min-height: 320px; }
+  .card { flex-direction: column; align-items: stretch; gap: 10px; }
+  .card-side { justify-content: space-between; }
+  .row { grid-template-columns: minmax(0, 7em) 1fr 2.4em; }
+}
+@media (prefers-reduced-motion: reduce) { .c { transition: none; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 16h26M16 3c-5 4-5 22 0 26M16 3c5 4 5 22 0 26" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="21" cy="11" r="3" fill="var(--pin)"/></svg>
+      Найди страну
+    </div>
+    <div class="hud" id="hud" hidden>
+      <span class="chip" id="hudLevel"></span>
+      <span class="chip">Очки <b id="hudScore">0</b></span>
+    </div>
+  </header>
+
+  <section class="card" aria-live="polite">
+    <div class="card-main">
+      <div class="eyebrow" id="eyebrow">10 раундов · до 100 очков за страну</div>
+      <h2 id="target">Где эта страна?</h2>
+      <p class="detail" id="detail">Выберите сложность, чтобы начать.</p>
+    </div>
+    <div class="card-side">
+      <div class="gain" id="gain" hidden></div>
+      <button class="btn primary" id="next" hidden>Дальше</button>
+    </div>
+  </section>
+
+  <div class="pips" id="pips" aria-hidden="true"></div>
+
+  <div class="stage" id="stage">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Карта мира">
+      <g id="land"></g>
+      <g id="fx"></g>
+    </svg>
+    <div class="ctrl" id="ctrl">
+      <button id="zin" aria-label="Приблизить">+</button>
+      <button id="zout" aria-label="Отдалить">−</button>
+      <button id="zworld" class="world">Весь мир</button>
+    </div>
+
+    <div class="overlay" id="menu">
+      <div class="panel">
+        <h3>Выберите сложность</h3>
+        <p>Десять стран подряд. Нажмите туда, где она находится. Чем ближе, тем больше очков.</p>
+        <div class="levels" id="levels"></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="end" hidden>
+      <div class="panel">
+        <div class="final"><span class="big" id="endScore">0</span><span class="of">из 1000</span></div>
+        <div class="rank" id="endRank"></div>
+        <p id="endNote"></p>
+        <div class="rows" id="endRows"></div>
+        <div class="actions">
+          <button class="btn primary" id="again">Ещё раз</button>
+          <button class="btn" id="change">Другая сложность</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* The map data ships as a script on the allowed CDN; it registers itself through this shim. */
+window.jsVectorMap = { addMap: function (name, data) { window.__world = data; } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/jsvectormap@1.5.3/dist/maps/world.js"></script>
+<script>
+(function () {
+  'use strict';
+  var NS = 'http://www.w3.org/2000/svg';
+  var $ = function (id) { return document.getElementById(id); };
+  var stage = $('stage'), svg = $('map'), land = $('land'), fx = $('fx');
+  var ROUNDS = 10;
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var data = window.__world;
+  if (!data || !data.paths) {
+    $('menu').hidden = true;
+    var e = document.createElement('div');
+    e.className = 'err';
+    e.textContent = 'Не удалось загрузить карту. Обновите страницу.';
+    stage.appendChild(e);
+    return;
+  }
+
+  var W = parseFloat(data.width) || 900;
+  var H = parseFloat(data.height) || 440;
+  var nodes = {}, names = {}, allIds = [];
+
+  Object.keys(data.paths).forEach(function (id) {
+    if (!/^[A-Z]{2}$/.test(id)) return;
+    var p = data.paths[id];
+    var el = document.createElementNS(NS, 'path');
+    el.setAttribute('d', p.path);
+    el.setAttribute('class', 'c');
+    el.setAttribute('vector-effect', 'non-scaling-stroke');
+    el.setAttribute('data-id', id);
+    land.appendChild(el);
+    nodes[id] = el;
+    names[id] = p.name || id;
+    allIds.push(id);
+  });
+
+  /* ---------- country names (Russian) ---------- */
+  var OVR = {
+    US: 'США', GB: 'Великобритания', AE: 'ОАЭ', CD: 'ДР Конго', CG: 'Республика Конго',
+    CZ: 'Чехия', MK: 'Северная Македония', SZ: 'Эсватини', CI: 'Кот-д’Ивуар', MM: 'Мьянма',
+    KR: 'Южная Корея', KP: 'Северная Корея', BA: 'Босния и Герцеговина', TL: 'Восточный Тимор',
+    CV: 'Кабо-Верде', XK: 'Косово', TW: 'Тайвань', PS: 'Палестина'
+  };
+  var dn = null;
+  try { dn = new Intl.DisplayNames(['ru'], { type: 'region' }); } catch (err) { dn = null; }
+  function nm(id) {
+    if (OVR[id]) return OVR[id];
+    try { if (dn) { var r = dn.of(id); if (r && r !== id) return r; } } catch (err) {}
+    return names[id] || id;
+  }
+
+  /* ---------- difficulty pools ---------- */
+  var EASY = 'US CA MX BR AR CL CO PE VE CU GB FR ES PT DE IT PL UA RU TR EG ZA NG KE ET MA DZ LY SA IR IQ IN CN JP KR TH VN ID AU NZ NO SE FI IS GR KZ MN PK AF CD TZ AO MG SD'.split(' ');
+  var MEDIUM_EXTRA = 'BO PY UY EC GT HN NI CR PA DO HT JM IE BY LT LV EE CZ SK HU RO BG RS HR BA AT CH BE NL DK AL MK SI MD GE AM AZ UZ TM KG TJ SY JO IL LB AE OM YE NP BD LK MM LA KH MY PH KP TW MR ML NE TD GH CI SN CM UG ZM ZW MZ NA BW SO TN GN BF GA CG SS CF ER ME XK'.split(' ');
+  var EXCLUDE = 'AQ GL PR FK GF NC TF PF EH'.split(' ');
+  function have(list) { return list.filter(function (id) { return nodes[id]; }); }
+  var LEVELS = {
+    easy:   { label: 'Лёгкая',  bars: 1, r: 90, desc: 'Известные страны. Щедрый зачёт за близость.', pool: have(EASY) },
+    medium: { label: 'Средняя', bars: 2, r: 55, desc: 'Больше стран и меньше права на ошибку.',      pool: have(EASY.concat(MEDIUM_EXTRA)) },
+    hard:   { label: 'Сложная', bars: 3, r: 30, desc: 'Все страны карты, включая острова. Строгий зачёт.', pool: allIds.filter(function (id) { return EXCLUDE.indexOf(id) < 0; }) }
+  };
+
+  /* ---------- best scores ---------- */
+  var BEST_KEY = 'najdi-stranu-best';
+  function loadBest() { try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; } catch (err) { return {}; } }
+  function saveBest(b) { try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch (err) {} }
+  var best = loadBest();
+
+  /* ---------- view (pan / zoom) ---------- */
+  var view = { cx: W / 2, cy: H / 2, w: W };
+  function size() { return { w: stage.clientWidth || 1, h: stage.clientHeight || 1 }; }
+  function wBounds() {
+    var s = size();
+    return { min: W / 60, max: Math.max(W, H * s.w / s.h) * 1.02 };
+  }
+  function clampView() {
+    var b = wBounds();
+    view.w = Math.min(b.max, Math.max(b.min, view.w));
+    view.cx = Math.min(W, Math.max(0, view.cx));
+    view.cy = Math.min(H, Math.max(0, view.cy));
+  }
+  function applyView() {
+    clampView();
+    var s = size();
+    var h = view.w * s.h / s.w;
+    svg.setAttribute('viewBox', (view.cx - view.w / 2) + ' ' + (view.cy - h / 2) + ' ' + view.w + ' ' + h);
+    updateFx();
+  }
+  function toMap(clientX, clientY) {
+    var r = svg.getBoundingClientRect();
+    var h = view.w * r.height / r.width;
+    return {
+      x: view.cx - view.w / 2 + (clientX - r.left) / r.width * view.w,
+      y: view.cy - h / 2 + (clientY - r.top) / r.height * h
+    };
+  }
+  function unitsPerPx() { return view.w / size().w; }
+  function resetView() {
+    var s = size();
+    view.cx = W / 2; view.cy = H * 0.5;
+    view.w = s.w < 640 ? W * 0.55 : wBounds().max;
+    applyView();
+  }
+  var anim = null;
+  function animateTo(t) {
+    if (anim) cancelAnimationFrame(anim);
+    if (reduceMotion) { view.cx = t.cx; view.cy = t.cy; view.w = t.w; applyView(); return; }
+    var f = { cx: view.cx, cy: view.cy, w: view.w }, t0 = performance.now(), dur = 650;
+    (function tick(now) {
+      var k = Math.min(1, (now - t0) / dur);
+      var e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      view.cx = f.cx + (t.cx - f.cx) * e;
+      view.cy = f.cy + (t.cy - f.cy) * e;
+      view.w = Math.exp(Math.log(f.w) + (Math.log(t.w) - Math.log(f.w)) * e);
+      applyView();
+      if (k < 1) anim = requestAnimationFrame(tick);
+    })(performance.now());
+  }
+  function zoomAt(factor, clientX, clientY) {
+    var s = size(), r = svg.getBoundingClientRect();
+    var fxp = (clientX - r.left) / r.width, fyp = (clientY - r.top) / r.height;
+    var m = toMap(clientX, clientY);
+    var b = wBounds();
+    view.w = Math.min(b.max, Math.max(b.min, view.w * factor));
+    var h = view.w * s.h / s.w;
+    view.cx = m.x - (fxp - 0.5) * view.w;
+    view.cy = m.y - (fyp - 0.5) * h;
+    applyView();
+  }
+  function zoomCenter(factor) {
+    var r = svg.getBoundingClientRect();
+    zoomAt(factor, r.left + r.width / 2, r.top + r.height / 2);
+  }
+
+  /* ---------- pointer handling ---------- */
+  var ptrs = {}, nPtrs = 0, drag = null, pinch = null;
+  function pdist() { var a = Object.keys(ptrs).map(function (k) { return ptrs[k]; }); return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+  function pmid() { var a = Object.keys(ptrs).map(function (k) { return ptrs[k]; }); return { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 }; }
+
+  svg.addEventListener('pointerdown', function (e) {
+    if (anim) { cancelAnimationFrame(anim); anim = null; }
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY }; nPtrs++;
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    if (nPtrs === 1) {
+      drag = { x: e.clientX, y: e.clientY, cx: view.cx, cy: view.cy, moved: false };
+    } else if (nPtrs === 2) {
+      drag = null;
+      var m = pmid();
+      pinch = { d0: pdist(), w0: view.w, anchor: toMap(m.x, m.y) };
+    }
+  });
+  svg.addEventListener('pointermove', function (e) {
+    if (!ptrs[e.pointerId]) return;
+    ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var r = svg.getBoundingClientRect();
+    if (pinch && nPtrs === 2) {
+      var b = wBounds(), d = pdist(), m = pmid();
+      view.w = Math.min(b.max, Math.max(b.min, pinch.w0 * pinch.d0 / d));
+      var h = view.w * r.height / r.width;
+      view.cx = pinch.anchor.x - ((m.x - r.left) / r.width - 0.5) * view.w;
+      view.cy = pinch.anchor.y - ((m.y - r.top) / r.height - 0.5) * h;
+      applyView();
+    } else if (drag) {
+      var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && Math.hypot(dx, dy) > 6) drag.moved = true;
+      if (drag.moved) {
+        var hh = view.w * r.height / r.width;
+        view.cx = drag.cx - dx / r.width * view.w;
+        view.cy = drag.cy - dy / r.height * hh;
+        applyView();
+      }
+    }
+  });
+  function endPtr(e, canClick) {
+    if (!ptrs[e.pointerId]) return;
+    delete ptrs[e.pointerId]; nPtrs--;
+    try { svg.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (nPtrs < 2) pinch = null;
+    if (canClick && drag && !drag.moved && nPtrs === 0) onTap(e.clientX, e.clientY);
+    if (nPtrs === 0) drag = null;
+  }
+  svg.addEventListener('pointerup', function (e) { endPtr(e, true); });
+  svg.addEventListener('pointercancel', function (e) { endPtr(e, false); });
+  svg.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    zoomAt(Math.exp(e.deltaY * 0.0015), e.clientX, e.clientY);
+  }, { passive: false });
+  $('zin').addEventListener('click', function () { zoomCenter(0.6); });
+  $('zout').addEventListener('click', function () { zoomCenter(1 / 0.6); });
+  $('zworld').addEventListener('click', function () { animateTo({ cx: W / 2, cy: H / 2, w: size().w < 640 ? W : wBounds().max }); });
+  window.addEventListener('resize', applyView);
+
+  /* ---------- game state ---------- */
+  var G = { phase: 'menu', level: null, queue: [], idx: 0, score: 0, results: [], current: null, fx: null };
+
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function quality(p) { return p >= 80 ? 'good' : p >= 40 ? 'mid' : 'bad'; }
+
+  function nearest(id, x, y) {
+    var el = nodes[id], len = el.getTotalLength();
+    var n = Math.min(900, Math.max(60, Math.ceil(len / 2)));
+    var bestD = Infinity, bx = 0, by = 0;
+    for (var i = 0; i <= n; i++) {
+      var pt = el.getPointAtLength(len * i / n);
+      var d = Math.hypot(pt.x - x, pt.y - y);
+      if (d < bestD) { bestD = d; bx = pt.x; by = pt.y; }
+    }
+    return { d: bestD, x: bx, y: by };
+  }
+  function inside(id, x, y) {
+    try { return nodes[id].isPointInFill(new DOMPoint(x, y)); } catch (err) { return false; }
+  }
+
+  /* Box of the largest piece of a country, so far-off territories (French Guiana, Alaska) do not stretch the ring and the framing. */
+  var mainBoxes = {};
+  function mainBox(id) {
+    if (mainBoxes[id]) return mainBoxes[id];
+    var parts = data.paths[id].path.split(/(?=M)/);
+    var tmp = document.createElementNS(NS, 'path');
+    fx.appendChild(tmp);
+    var bestBox = null, bestArea = -1;
+    parts.forEach(function (d) {
+      tmp.setAttribute('d', d);
+      var b;
+      try { b = tmp.getBBox(); } catch (err) { return; }
+      var a = b.width * b.height;
+      if (a > bestArea) { bestArea = a; bestBox = { x: b.x, y: b.y, width: b.width, height: b.height }; }
+    });
+    fx.removeChild(tmp);
+    if (!bestBox) { var f = nodes[id].getBBox(); bestBox = { x: f.x, y: f.y, width: f.width, height: f.height }; }
+    mainBoxes[id] = bestBox;
+    return bestBox;
+  }
+
+  function clearFx() {
+    while (fx.firstChild) fx.removeChild(fx.firstChild);
+    G.fx = null;
+    Object.keys(nodes).forEach(function (k) { nodes[k].classList.remove('target', 'wrong'); });
+  }
+  function mk(tag, cls) { var el = document.createElementNS(NS, tag); el.setAttribute('class', cls); el.setAttribute('vector-effect', 'non-scaling-stroke'); return el; }
+  function updateFx() {
+    if (!G.fx) return;
+    var u = unitsPerPx();
+    G.fx.halo.setAttribute('r', 16 * u);
+    G.fx.ring.setAttribute('r', 8 * u);
+    G.fx.dot.setAttribute('r', 3 * u);
+    G.fx.tring.setAttribute('r', G.fx.base + 8 * u);
+  }
+
+  function renderPips() {
+    var box = $('pips');
+    box.innerHTML = '';
+    for (var i = 0; i < ROUNDS; i++) {
+      var s = document.createElement('span');
+      s.className = 'pip';
+      if (G.results[i]) s.classList.add(quality(G.results[i].pts));
+      else if (G.phase !== 'menu' && G.phase !== 'end' && i === G.idx) s.classList.add('now');
+      box.appendChild(s);
+    }
+  }
+  function renderHud() {
+    var on = G.phase !== 'menu';
+    $('hud').hidden = !on;
+    if (G.level) $('hudLevel').textContent = LEVELS[G.level].label;
+    $('hudScore').textContent = G.score;
+  }
+
+  function showMenu() {
+    G.phase = 'menu'; G.level = null; G.results = []; G.score = 0;
+    clearFx();
+    stage.classList.remove('guessing');
+    $('end').hidden = true;
+    $('menu').hidden = false;
+    $('eyebrow').textContent = ROUNDS + ' раундов · до 100 очков за страну';
+    $('target').textContent = 'Где эта страна?';
+    $('detail').textContent = 'Выберите сложность, чтобы начать.';
+    $('gain').hidden = true; $('next').hidden = true;
+    renderLevels(); renderPips(); renderHud();
+    resetView();
+  }
+
+  function renderLevels() {
+    var box = $('levels');
+    box.innerHTML = '';
+    Object.keys(LEVELS).forEach(function (key) {
+      var L = LEVELS[key];
+      var b = document.createElement('button');
+      b.className = 'level';
+      b.type = 'button';
+      var bars = '<span class="bars" aria-hidden="true">' + [1, 2, 3].map(function (n) { return '<i class="' + (n <= L.bars ? 'on' : '') + '"></i>'; }).join('') + '</span>';
+      var rec = best[key] ? '<b>' + best[key] + '</b>рекорд' : '<b>—</b>рекорда нет';
+      b.innerHTML = bars + '<span><span class="name">' + L.label + '</span><br><span class="desc">' + L.desc + ' ' + L.pool.length + ' стран.</span></span><span class="best">' + rec + '</span>';
+      b.addEventListener('click', function () { startGame(key); });
+      box.appendChild(b);
+    });
+  }
+
+  function startGame(key) {
+    var L = LEVELS[key];
+    G.level = key; G.score = 0; G.results = []; G.idx = 0;
+    G.queue = shuffle(L.pool).slice(0, ROUNDS);
+    $('menu').hidden = true; $('end').hidden = true;
+    resetView();
+    beginRound();
+  }
+
+  function beginRound() {
+    clearFx();
+    G.phase = 'guess';
+    G.current = G.queue[G.idx];
+    stage.classList.add('guessing');
+    $('eyebrow').textContent = 'Раунд ' + (G.idx + 1) + ' из ' + ROUNDS;
+    $('target').textContent = nm(G.current);
+    $('detail').textContent = 'Нажмите на карте туда, где находится эта страна.';
+    $('gain').hidden = true; $('next').hidden = true;
+    renderPips(); renderHud();
+  }
+
+  function onTap(cx, cy) {
+    if (G.phase !== 'guess') return;
+    var m = toMap(cx, cy);
+    var elUnder = document.elementFromPoint(cx, cy);
+    var clickedId = elUnder && elUnder.getAttribute && elUnder.getAttribute('data-id');
+    var id = G.current;
+    var tolerance = 10 * unitsPerPx();
+    var near = nearest(id, m.x, m.y);
+    var hit = inside(id, m.x, m.y) || clickedId === id || near.d <= tolerance;
+    var pts = hit ? 100 : Math.round(100 * Math.exp(-near.d / LEVELS[G.level].r));
+    G.phase = 'result';
+    stage.classList.remove('guessing');
+    G.score += pts;
+    G.results.push({ id: id, pts: pts });
+
+    /* reveal */
+    var tEl = nodes[id];
+    land.appendChild(tEl);
+    tEl.classList.add('target');
+    if (!hit && clickedId && nodes[clickedId]) nodes[clickedId].classList.add('wrong');
+    var bb = mainBox(id);
+    var base = Math.max(bb.width, bb.height) / 2;
+    var f = {
+      halo: mk('circle', 'fx-halo'), ring: mk('circle', 'fx-ring'), dot: mk('circle', 'fx-dot'),
+      tring: mk('circle', 'fx-target'), line: mk('line', 'fx-line'), base: base
+    };
+    if (base >= 30) f.tring.style.display = 'none';
+    f.tring.setAttribute('cx', bb.x + bb.width / 2); f.tring.setAttribute('cy', bb.y + bb.height / 2);
+    [f.halo, f.ring, f.dot].forEach(function (c) { c.setAttribute('cx', m.x); c.setAttribute('cy', m.y); });
+    if (!hit) {
+      f.line.setAttribute('x1', m.x); f.line.setAttribute('y1', m.y);
+      f.line.setAttribute('x2', near.x); f.line.setAttribute('y2', near.y);
+      fx.appendChild(f.line);
+    }
+    fx.appendChild(f.tring); fx.appendChild(f.halo); fx.appendChild(f.ring); fx.appendChild(f.dot);
+    G.fx = f;
+    updateFx();
+
+    /* copy */
+    var q = quality(pts);
+    var word, d = near.d;
+    if (hit) word = 'Точно в цель.';
+    else if (d < 20) word = 'Почти попали.';
+    else if (d < 60) word = 'Рядом.';
+    else if (d < 150) word = 'Далековато.';
+    else word = 'Совсем мимо.';
+    var where = hit ? '' : ' Вы нажали: ' + (clickedId && nodes[clickedId] ? nm(clickedId) : 'океан') + '.';
+    $('eyebrow').textContent = 'Раунд ' + (G.idx + 1) + ' из ' + ROUNDS + ' · итог';
+    $('detail').textContent = word + where;
+    var g = $('gain');
+    g.hidden = false; g.className = 'gain ' + q; g.textContent = '+' + pts;
+    var nx = $('next');
+    nx.hidden = false;
+    nx.textContent = G.idx + 1 >= ROUNDS ? 'Итоги' : 'Дальше';
+    nx.focus({ preventScroll: true });
+    renderPips(); renderHud();
+
+    /* frame the target and the click */
+    var minX = Math.min(bb.x, m.x), maxX = Math.max(bb.x + bb.width, m.x);
+    var minY = Math.min(bb.y, m.y), maxY = Math.max(bb.y + bb.height, m.y);
+    var s = size(), b = wBounds();
+    var needW = Math.max((maxX - minX) * 1.5, (maxY - minY) * 1.5 * s.w / s.h, W / 14);
+    animateTo({ cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, w: Math.min(b.max, Math.max(b.min, needW)) });
+  }
+
+  function rankFor(total) {
+    if (total >= 900) return ['Картограф', 'Вы знаете мир почти наизусть.'];
+    if (total >= 750) return ['Штурман', 'Уверенно ориентируетесь на карте.'];
+    if (total >= 550) return ['Путешественник', 'Хороший результат. Остались пробелы на карте.'];
+    if (total >= 350) return ['Турист', 'Есть что подтянуть. Попробуйте ещё раз.'];
+    return ['Домосед', 'Карта ещё впереди. Следующая попытка будет лучше.'];
+  }
+
+  function endGame() {
+    G.phase = 'end';
+    clearFx();
+    var r = rankFor(G.score);
+    var prev = best[G.level] || 0;
+    var isRecord = G.score > prev;
+    if (isRecord) { best[G.level] = G.score; saveBest(best); }
+    $('endScore').textContent = G.score;
+    $('endRank').textContent = r[0] + ' · ' + LEVELS[G.level].label;
+    $('endNote').textContent = (isRecord ? (prev ? 'Новый рекорд! Прошлый был ' + prev + '. ' : 'Первый результат на этой сложности записан. ') : 'Рекорд: ' + prev + '. ') + r[1];
+    var rows = $('endRows');
+    rows.innerHTML = '';
+    G.results.forEach(function (x) {
+      var row = document.createElement('div');
+      row.className = 'row';
+      var a = document.createElement('span'); a.textContent = nm(x.id);
+      var t = document.createElement('span'); t.className = 'track';
+      var i = document.createElement('i'); i.className = quality(x.pts); i.style.width = x.pts + '%'; t.appendChild(i);
+      var p = document.createElement('b'); p.textContent = x.pts;
+      row.appendChild(a); row.appendChild(t); row.appendChild(p);
+      rows.appendChild(row);
+    });
+    $('eyebrow').textContent = 'Игра окончена';
+    $('target').textContent = G.score + ' из 1000';
+    $('detail').textContent = r[0];
+    $('gain').hidden = true; $('next').hidden = true;
+    $('end').hidden = false;
+    renderPips(); renderHud();
+    animateTo({ cx: W / 2, cy: H / 2, w: size().w < 640 ? W * 0.55 : wBounds().max });
+  }
+
+  $('next').addEventListener('click', function () {
+    if (G.phase !== 'result') return;
+    G.idx++;
+    if (G.idx >= ROUNDS) endGame(); else { beginRound(); animateTo({ cx: W / 2, cy: H / 2, w: size().w < 640 ? W * 0.55 : wBounds().max }); }
+  });
+  $('again').addEventListener('click', function () { startGame(G.level); });
+  $('change').addEventListener('click', showMenu);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && G.phase === 'result' && document.activeElement && document.activeElement.tagName !== 'BUTTON') $('next').click();
+  });
+
+  showMenu();
+})();
+</script>
+
+</body></html>
